@@ -1,10 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/percent_indicator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'login.dart';
 import 'class/quiz.dart';
 import 'dart:async';
 
-void main() {
-  runApp(const MyApp());
+// void RemovePref(){
+//   prefs?.remove('counter');
+// }
+
+SharedPreferences? prefs;
+// ignore: non_constant_identifier_names
+int _question_no = 0;
+int _point = 0;
+final List<QuestionObj> _questions = [];
+final int _initValue = 60;
+int counter = 60;
+// ignore: non_constant_identifier_names
+String active_user = "";
+
+Future<String> checkUser() async {
+  final prefs = await SharedPreferences.getInstance();
+  String user_id = prefs.getString("user_id") ?? '';
+  return user_id;
 }
 
 class MyApp extends StatelessWidget {
@@ -32,13 +50,7 @@ class Quiz extends StatefulWidget {
 }
 
 class _QuizState extends State<Quiz> {
-  int _question_no = 0;
-  int _point = 0;
-  final List<QuestionObj> _questions = [];
-  final int _initValue = 360;
-  int _counter = 360;
   late Timer _timer;
-
   @override
   void initState() {
     super.initState();
@@ -155,17 +167,17 @@ class _QuizState extends State<Quiz> {
         '128π cm²',
         '32π cm²',
         'https://akupintar.id/documents/portlet_file_entry/20143/1.png/d3cae7a9-5811-c6c3-3453-101122d576da?imagePreview=1'));
-        _questions.shuffle();
+    _questions.shuffle();
   }
 
   void startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
-        if (_counter == 0) {
+        if (counter == 0) {
           _timer.cancel();
           showDialog(context: context, builder: _buildEndDialog);
         } else {
-          _counter--;
+          counter--;
         }
       });
     });
@@ -185,7 +197,7 @@ class _QuizState extends State<Quiz> {
         TextButton(
           onPressed: () {
             setState(() {
-              _counter = _initValue;
+              counter = _initValue;
               startTimer();
               _questions.shuffle();
             });
@@ -218,13 +230,13 @@ class _QuizState extends State<Quiz> {
               children: <Widget>[
                 LinearPercentIndicator(
                   center: Text(
-                    formatTime(_counter),
+                    formatTime(counter),
                     style: const TextStyle(
                         fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   width: MediaQuery.of(context).size.width,
                   lineHeight: 30.0,
-                  percent: _counter / _initValue,
+                  percent: counter / _initValue,
                   backgroundColor: Colors.grey,
                   progressColor: Colors.red,
                 ),
@@ -250,7 +262,7 @@ class _QuizState extends State<Quiz> {
             ),
             const SizedBox(height: 50),
             Positioned(
-              top: 240, 
+              top: 240,
               left: 20,
               right: 20,
               child: Column(
@@ -296,7 +308,7 @@ class _QuizState extends State<Quiz> {
         endGame();
       } else {
         _question_no++;
-        _counter = _initValue;
+        counter = _initValue;
         _timer.cancel();
         startTimer();
       }
@@ -315,7 +327,7 @@ class _QuizState extends State<Quiz> {
             TextButton(
               onPressed: () {
                 setState(() {
-                  _counter = _initValue;
+                  counter = _initValue;
                   _point = 0;
                   _question_no = 0;
                   startTimer();
@@ -343,4 +355,17 @@ class _QuizState extends State<Quiz> {
     var seconds = (hitung % 60).toString().padLeft(2, '0');
     return "$hours:$minutes:$seconds";
   }
+}
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  checkUser().then((String result) {
+    if (result == '') {
+      runApp(MyLogin());
+    } else {
+      active_user = result;
+      runApp(MyApp());
+    }
+  });
+  // runApp(const MyApp());
 }
