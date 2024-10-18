@@ -2,20 +2,24 @@ import 'package:flutter/material.dart';
 import 'main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+
+// ignore: non_constant_identifier_names
+String _user_id='';
+SharedPreferences? prefs;
 void doLogin() async {
   //later, we use web service here to check the user id and password
   final prefs = await SharedPreferences.getInstance();
-  prefs.setString("user_id", 'admin123');
+  prefs.setString("user_id", _user_id);
   main();
 }
 
 class MyLogin extends StatelessWidget {
-  const MyLogin({super.key});
+  const MyLogin({super.key}); 
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Login',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
@@ -53,6 +57,9 @@ class _LoginState extends State<Login> {
             Padding(
               padding: EdgeInsets.all(10),
               child: TextField(
+                onChanged: (v){
+                  _user_id = v;
+                },
                 decoration: InputDecoration(
                     border: OutlineInputBorder(),
                     labelText: 'Email',
@@ -78,7 +85,9 @@ class _LoginState extends State<Login> {
                   decoration:
                       BoxDecoration(borderRadius: BorderRadius.circular(20)),
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      doLogin();
+                    },
                     child: Text(
                       'Login',
                       style: TextStyle(fontSize: 25),

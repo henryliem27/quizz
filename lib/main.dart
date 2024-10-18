@@ -1,28 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/percent_indicator.dart';
+import 'package:quizz/highscore.dart';
+import 'package:quizz/login.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'login.dart';
 import 'class/quiz.dart';
 import 'dart:async';
 
 // void RemovePref(){
-//   prefs?.remove('counter');
+// final prefs = await SharedPreferences.getInstance();
+//   prefs.remove('counter');
 // }
 
 SharedPreferences? prefs;
 // ignore: non_constant_identifier_names
 int _question_no = 0;
 int _point = 0;
+// ignore: non_constant_identifier_names
+int _top_point = 0;
 final List<QuestionObj> _questions = [];
 final int _initValue = 60;
 int counter = 60;
 // ignore: non_constant_identifier_names
 String active_user = "";
+// ignore: non_constant_identifier_names
+String _user_id = "";
 
 Future<String> checkUser() async {
   final prefs = await SharedPreferences.getInstance();
+  // ignore: non_constant_identifier_names
   String user_id = prefs.getString("user_id") ?? '';
   return user_id;
+}
+
+String formatTime(int hitung) {
+  var hours = (hitung ~/ 3600).toString().padLeft(2, '0');
+  var minutes = ((hitung % 3600) ~/ 60).toString().padLeft(2, '0');
+  var seconds = (hitung % 60).toString().padLeft(2, '0');
+  return "$hours:$minutes:$seconds";
+}
+
+void doLogout() async {
+  final prefs = await SharedPreferences.getInstance();
+  prefs.remove("user_id");
+  main();
 }
 
 class MyApp extends StatelessWidget {
@@ -54,6 +74,9 @@ class _QuizState extends State<Quiz> {
   @override
   void initState() {
     super.initState();
+    checkUser().then((value) => setState(() {
+          _user_id = value;
+        }));
     startTimer();
     _questions.add(QuestionObj(
         "Not a member of Avengers",
@@ -223,11 +246,15 @@ class _QuizState extends State<Quiz> {
         title: const Text('Quiz Timer'),
       ),
       body: Center(
-        child: Stack(
+        child: Column(
           children: <Widget>[
             Column(
               mainAxisAlignment: MainAxisAlignment.start,
               children: <Widget>[
+                UserAccountsDrawerHeader(
+                  accountName: Text("xyz"),
+                  accountEmail: Text(_user_id),
+                ),
                 LinearPercentIndicator(
                   center: Text(
                     formatTime(counter),
@@ -240,58 +267,59 @@ class _QuizState extends State<Quiz> {
                   backgroundColor: Colors.grey,
                   progressColor: Colors.red,
                 ),
+                Container(
+                  // top: 10,
+                  // left: MediaQuery.of(context).size.width / 2 - 100,
+                  margin: const EdgeInsets.all(16.0), // Add margin here
+                  height: 200,
+                  width: 200,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    image: DecorationImage(
+                      image: NetworkImage(_questions[_question_no].picture),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  // child: ClipOval(
+                  //   child: FadeInImage(
+                  //     placeholder: AssetImage(
+                  //         'assets/placeholder.png'), // A local placeholder image
+                  //     image: NetworkImage(_questions[_question_no].picture),
+                  //     fit: BoxFit.cover,
+                  //     imageErrorBuilder: (context, error, stackTrace) {
+                  //       return Center(child: Text('Image not available'));
+                  //     },
+                  //   ),
+                  // ),
+                ),
+                Column(
+                  children: [
+                    Text(_questions[_question_no].narration),
+                    const SizedBox(height: 20),
+                    TextButton(
+                      onPressed: () =>
+                          checkAnswer(_questions[_question_no].optionA),
+                      child: Text("A. ${_questions[_question_no].optionA}"),
+                    ),
+                    TextButton(
+                      onPressed: () =>
+                          checkAnswer(_questions[_question_no].optionB),
+                      child: Text("B. ${_questions[_question_no].optionB}"),
+                    ),
+                    TextButton(
+                      onPressed: () =>
+                          checkAnswer(_questions[_question_no].optionC),
+                      child: Text("C. ${_questions[_question_no].optionC}"),
+                    ),
+                    TextButton(
+                      onPressed: () =>
+                          checkAnswer(_questions[_question_no].optionD),
+                      child: Text("D. ${_questions[_question_no].optionD}"),
+                    ),
+                  ],
+                )
               ],
             ),
-            const SizedBox(height: 50),
-            Positioned(
-              top: 10,
-              left: MediaQuery.of(context).size.width / 2 -
-                  100, // Center the image horizontally
-              child: Container(
-                margin: const EdgeInsets.all(16.0), // Add margin here
-                height: 200,
-                width: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  image: DecorationImage(
-                    image: NetworkImage(_questions[_question_no].picture),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 50),
-            Positioned(
-              top: 240,
-              left: 20,
-              right: 20,
-              child: Column(
-                children: [
-                  Text(_questions[_question_no].narration),
-                  const SizedBox(height: 20),
-                  TextButton(
-                    onPressed: () =>
-                        checkAnswer(_questions[_question_no].optionA),
-                    child: Text("A. ${_questions[_question_no].optionA}"),
-                  ),
-                  TextButton(
-                    onPressed: () =>
-                        checkAnswer(_questions[_question_no].optionB),
-                    child: Text("B. ${_questions[_question_no].optionB}"),
-                  ),
-                  TextButton(
-                    onPressed: () =>
-                        checkAnswer(_questions[_question_no].optionC),
-                    child: Text("C. ${_questions[_question_no].optionC}"),
-                  ),
-                  TextButton(
-                    onPressed: () =>
-                        checkAnswer(_questions[_question_no].optionD),
-                    child: Text("D. ${_questions[_question_no].optionD}"),
-                  ),
-                ],
-              ),
-            )
           ],
         ),
       ),
@@ -315,7 +343,17 @@ class _QuizState extends State<Quiz> {
     });
   }
 
+  void saveHighScore(int point, int highPoint, String topUser) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (highPoint == 0 || highPoint < point) {
+      highPoint = highPoint + point;
+      prefs.setString('top_user', topUser);
+      prefs.setInt('high_score', highPoint);
+    }
+  }
+
   void endGame() {
+    saveHighScore(_point, _top_point, _user_id);
     _timer.cancel();
     showDialog(
       context: context,
@@ -337,23 +375,31 @@ class _QuizState extends State<Quiz> {
               },
               child: const Text('Restart Quiz'),
             ),
+            // TextButton(
+            //   onPressed: () {
+            //     Navigator.of(context).pop();
+            //   },
+            //   child: const Text('Exit'),
+            // ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => const Highscore()));
               },
-              child: const Text('Exit'),
+              child: const Text('High Score'),
+            ),
+            TextButton(
+              onPressed: () {
+                doLogout();
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => const Highscore()));
+              },
+              child: const Text('Log out'),
             ),
           ],
         );
       },
     );
-  }
-
-  String formatTime(int hitung) {
-    var hours = (hitung ~/ 3600).toString().padLeft(2, '0');
-    var minutes = ((hitung % 3600) ~/ 60).toString().padLeft(2, '0');
-    var seconds = (hitung % 60).toString().padLeft(2, '0');
-    return "$hours:$minutes:$seconds";
   }
 }
 
